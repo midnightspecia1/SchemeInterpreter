@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use <&>" #-}
 import System.Environment
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Control.Monad
@@ -7,6 +9,12 @@ symbol = oneOf "!$%&|*+ -/: <=? >@^_~#"
 
 spaces :: Parser ()
 spaces = skipMany1 space
+
+escapedChars :: Parser String
+escapedChars = do
+            char '\\'
+            x <- oneOf "\\\""
+            return [x]
 
 readExpr :: String -> String
 readExpr input = case parse parseExpr "lisp" input of
@@ -24,7 +32,7 @@ data LispVal = Atom String
 parseString :: Parser LispVal
 parseString = do
             char '"'
-            x <- many (noneOf "\"")
+            x <- many (noneOf "\"") -- oneOf ([Char])
             char '"'
             return $ String x
 
@@ -40,11 +48,11 @@ parseAtom = do
 
 parseNumber :: Parser LispVal
 parseNumber = do
-        digits <- many1 digit
-        liftM (Number . read) digits
-        
--- return (Number . read) <$> digits        
+        many1 digit >>= return . Number . read
+-- (return . Number . read) digits
 -- liftM - promoting function into a monad
+-- liftM (Number . read) $ many1 digit        
+
 
 parseExpr :: Parser LispVal
 parseExpr = parseAtom <|> parseString
